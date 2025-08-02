@@ -61,8 +61,26 @@ class DataTypeDetector:
         # Try parsing as numbers
         number_score = self._detect_number_format(str_data)
         
-        # Default string score
-        string_score = 1.0 - max(date_score, number_score)
+        # Calculate string score (what's left after date and number detection)
+        string_score = max(0, 1.0 - date_score - number_score)
+        
+        # Simple logic: if we have a clear winner, use it
+        # Otherwise, default to string for mixed data
+        if date_score > 0.5:
+            # Clear date dominance
+            date_score = 1.0
+            number_score = 0.0
+            string_score = 0.0
+        elif number_score > 0.5:
+            # Clear number dominance
+            date_score = 0.0
+            number_score = 1.0
+            string_score = 0.0
+        else:
+            # Mixed or unclear - default to string
+            date_score = 0.0
+            number_score = 0.0
+            string_score = 1.0
         
         scores = {
             'string': string_score,
@@ -212,18 +230,24 @@ class DataTypeDetector:
         total_count = len(str_data)
         
         for value in str_data:
-            # Check for Excel serial dates
+            value_str = str(value).strip()
+            
+            # Check for Excel serial dates (much more restrictive)
             try:
-                float_val = float(value)
-                if 1 <= float_val <= 100000:
-                    date_count += 1
-                    continue
+                float_val = float(value_str)
+                # Only consider as Excel date if it's an integer in a reasonable date range
+                if float_val == int(float_val):  # Must be integer
+                    # Excel dates: 1 = Jan 1, 1900, 73050 = Dec 31, 2099
+                    # But be more restrictive - only consider if it's in a reasonable range
+                    if 1000 <= float_val <= 73050:  # More reasonable range
+                        date_count += 1
+                        continue
             except ValueError:
                 pass
             
-            # Check for date patterns
+            # Check for date patterns (more specific)
             for pattern in self.date_patterns:
-                if re.match(pattern, str(value), re.IGNORECASE):
+                if re.match(pattern, value_str, re.IGNORECASE):
                     date_count += 1
                     break
         
@@ -243,10 +267,22 @@ class DataTypeDetector:
         total_count = len(str_data)
         
         for value in str_data:
+            value_str = str(value).strip()
+            
+            # Skip if it looks like a date first
+            is_date = False
+            for pattern in self.date_patterns:
+                if re.match(pattern, value_str, re.IGNORECASE):
+                    is_date = True
+                    break
+            
+            if is_date:
+                continue  # Skip date-like values
+            
             # Try to parse as number
             try:
                 # Remove common currency symbols and separators
-                clean_value = re.sub(r'[\$€₹£¥,()]', '', str(value))
+                clean_value = re.sub(r'[\$€₹£¥,()]', '', value_str)
                 clean_value = clean_value.replace('-', '')
                 
                 # Try parsing as float
@@ -257,7 +293,7 @@ class DataTypeDetector:
                 pass
             
             # Check for abbreviated formats (K, M, B)
-            if re.match(r'^[\d.]+[KMB]$', str(value), re.IGNORECASE):
+            if re.match(r'^[\d.]+[KMB]$', value_str, re.IGNORECASE):
                 number_count += 1
                 continue
         

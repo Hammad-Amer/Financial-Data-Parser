@@ -30,8 +30,27 @@ class TestExcelProcessor(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test fixtures."""
+        # Close any open workbooks to release file handles
+        for file_info in self.processor.loaded_files.values():
+            if 'workbook' in file_info:
+                try:
+                    file_info['workbook'].close()
+                except:
+                    pass
+        
+        # Clear loaded files
+        self.processor.loaded_files.clear()
+        self.processor.file_info.clear()
+        
+        # Try to delete temp file with retry logic for Windows
         if os.path.exists(self.temp_file.name):
-            os.unlink(self.temp_file.name)
+            import time
+            for _ in range(3):  # Try 3 times
+                try:
+                    os.unlink(self.temp_file.name)
+                    break
+                except PermissionError:
+                    time.sleep(0.1)  # Wait 100ms before retry
     
     def test_load_files(self):
         """Test loading Excel files."""
