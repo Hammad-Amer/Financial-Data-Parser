@@ -1,0 +1,4 @@
+Method,Status,Time,Memory (KB),Matches,Targets Tested,Transactions Used
+Brute Force,Failed: unsupported operand type(s) for +: 'int' and 'dict',0.01s,0,0,3,15
+Dynamic Programming,Failed: 'amount',0.00s,0,0,10,100
+Genetic Algorithm,Failed: No valid numbers or targets found,0.00s,0,0,10,100
