@@ -1,0 +1,4 @@
+Method,Status,Time,Memory (KB),Matches,Targets Tested,Transactions Used
+Brute Force,Completed,1.03s,44.47,0,3,15
+Dynamic Programming,Failed: 'amount',0.00s,0.0,0,10,100
+Genetic Algorithm,Completed,9.82s,205.09,10,10,100
